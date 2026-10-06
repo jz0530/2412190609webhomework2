@@ -1,153 +1,138 @@
-// Based on coder章老师's course notes: 1.4测试题目.md
-const startScreen = document.getElementById("start-screen");
-const quizScreen = document.getElementById("quiz-screen");
-const resultScreen = document.getElementById("result-screen");
-const startButton = document.getElementById("start-btn");
-const questionText = document.getElementById("question-text");
-const answersContainer = document.getElementById("answers-container");
-const currentQuestionSpan = document.getElementById("current-question");
-const totalQuestionsSpan = document.getElementById("total-questions");
-const scoreSpan = document.getElementById("score");
-const finalScoreSpan = document.getElementById("final-score");
-const maxScoreSpan = document.getElementById("max-score");
-const resultMessage = document.getElementById("result-message");
-const restartButton = document.getElementById("restart-btn");
-const progressBar = document.getElementById("progress");
+// 根据老师《1.5菜谱搜索器.md》组织：搜索、渲染卡片、按 id 获取详情。
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const mealsContainer = document.getElementById('meals');
+const resultHeading = document.getElementById('result-heading');
+const errorContainer = document.getElementById('error-container');
+const mealDetails = document.getElementById('meal-details');
+const mealDetailsContent = document.querySelector('.meal-details-content');
+const backBtn = document.getElementById('back-btn');
+const BASE_URL = 'https://www.themealdb.com/api/json/v1/1/';
+const SEARCH_URL = `${BASE_URL}search.php?s=`;
+const LOOKUP_URL = `${BASE_URL}lookup.php?i=`;
+let detailRequest = 0;
+let selectedCard = null;
 
-const quizQuestions = [
-    {
-        question: "What is the capital of France?",
-        answers: [
-            { text: "London", correct: false },
-            { text: "Berlin", correct: false },
-            { text: "Paris", correct: true },
-            { text: "Madrid", correct: false },
-        ],
-    },
-    {
-        question: "Which planet is known as the Red Planet?",
-        answers: [
-            { text: "Venus", correct: false },
-            { text: "Mars", correct: true },
-            { text: "Jupiter", correct: false },
-            { text: "Saturn", correct: false },
-        ],
-    },
-    {
-        question: "What is the largest ocean on Earth?",
-        answers: [
-            { text: "Atlantic Ocean", correct: false },
-            { text: "Indian Ocean", correct: false },
-            { text: "Arctic Ocean", correct: false },
-            { text: "Pacific Ocean", correct: true },
-        ],
-    },
-    {
-        question: "Which of these is NOT a programming language?",
-        answers: [
-            { text: "Java", correct: false },
-            { text: "Python", correct: false },
-            { text: "Banana", correct: true },
-            { text: "JavaScript", correct: false },
-        ],
-    },
-    {
-        question: "What is the chemical symbol for gold?",
-        answers: [
-            { text: "Go", correct: false },
-            { text: "Gd", correct: false },
-            { text: "Au", correct: true },
-            { text: "Ag", correct: false },
-        ],
-    },
-];
+document.getElementById('search-form').addEventListener('submit', searchMeals);
+mealsContainer.addEventListener('click', handleMealClick);
+backBtn.addEventListener('click', () => {
+  detailRequest++;
+  mealDetails.classList.add('hidden');
+  if (selectedCard?.isConnected) selectedCard.focus();
+});
 
-let currentQuestionIndex = 0;
-let score = 0;
-let answersDisabled = false;
-
-totalQuestionsSpan.textContent = quizQuestions.length;
-maxScoreSpan.textContent = quizQuestions.length;
-startButton.addEventListener("click", startQuiz);
-restartButton.addEventListener("click", restartQuiz);
-
-function startQuiz() {
-    currentQuestionIndex = 0;
-    score = 0;
-    scoreSpan.textContent = 0;
-    startScreen.classList.remove("active");
-    quizScreen.classList.add("active");
-    showQuestion();
+function showError(message) {
+  errorContainer.textContent = message;
+  errorContainer.classList.remove('hidden');
 }
-
-function showQuestion() {
-    answersDisabled = false;
-    const currentQuestion = quizQuestions[currentQuestionIndex];
-    currentQuestionSpan.textContent = currentQuestionIndex + 1;
-    const progressPercent = (currentQuestionIndex / quizQuestions.length) * 100;
-    progressBar.style.width = progressPercent + "%";
-    questionText.textContent = currentQuestion.question;
-    answersContainer.innerHTML = "";
-
-    currentQuestion.answers.forEach((answer) => {
-        const button = document.createElement("button");
-        button.textContent = answer.text;
-        button.classList.add("answer-btn");
-        button.dataset.correct = answer.correct;
-        button.addEventListener("click", selectAnswer);
-        answersContainer.appendChild(button);
-    });
+async function fetchMeals(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (data.meals !== null && !Array.isArray(data.meals)) throw new Error('Invalid response');
+    return data.meals;
+  } finally { clearTimeout(timer); }
 }
-
-function selectAnswer(event) {
-    if (answersDisabled) return;
-    answersDisabled = true;
-    const selectedButton = event.target;
-    const isCorrect = selectedButton.dataset.correct === "true";
-
-    Array.from(answersContainer.children).forEach((button) => {
-        button.disabled = true;
-        if (button.dataset.correct === "true") {
-            button.classList.add("correct");
-        } else if (button === selectedButton) {
-            button.classList.add("incorrect");
-        }
-    });
-    if (isCorrect) {
-        score++;
-        scoreSpan.textContent = score;
+async function searchMeals(event) {
+  event.preventDefault();
+  if (searchBtn.disabled) return;
+  const searchTerm = searchInput.value.trim();
+  if (!searchTerm) { showError('Please enter a search term.'); searchInput.focus(); return; }
+  detailRequest++;
+  mealDetails.classList.add('hidden');
+  errorContainer.classList.add('hidden');
+  mealsContainer.replaceChildren();
+  resultHeading.textContent = `Searching for "${searchTerm}"…`;
+  searchBtn.disabled = true;
+  searchBtn.textContent = 'Searching…';
+  try {
+    const meals = await fetchMeals(SEARCH_URL + encodeURIComponent(searchTerm));
+    if (!meals?.length) {
+      resultHeading.textContent = '';
+      showError(`No recipes found for "${searchTerm}". Try another search term!`);
+      return;
     }
-    progressBar.style.width = ((currentQuestionIndex + 1) / quizQuestions.length) * 100 + "%";
-
-    setTimeout(() => {
-        currentQuestionIndex++;
-        if (currentQuestionIndex < quizQuestions.length) {
-            showQuestion();
-        } else {
-            showResults();
-        }
-    }, 1000);
+    resultHeading.textContent = `Search results for "${searchTerm}" (${meals.length}):`;
+    displayMeals(meals);
+  } catch (error) {
+    resultHeading.textContent = '';
+    showError('Could not connect to TheMealDB. Please check your connection and try again.');
+  } finally {
+    searchBtn.disabled = false;
+    searchBtn.textContent = 'Search';
+  }
 }
-
-function showResults() {
-    quizScreen.classList.remove("active");
-    resultScreen.classList.add("active");
-    finalScoreSpan.textContent = score;
-    const percentage = (score / quizQuestions.length) * 100;
-    if (percentage === 100) {
-        resultMessage.textContent = "Perfect! You're a genius!";
-    } else if (percentage >= 80) {
-        resultMessage.textContent = "Great job! You know your stuff!";
-    } else if (percentage >= 60) {
-        resultMessage.textContent = "Good effort! Keep learning!";
-    } else if (percentage >= 40) {
-        resultMessage.textContent = "Not bad! Try again to improve!";
-    } else {
-        resultMessage.textContent = "Keep studying! You'll get better!";
+// 使用 textContent 写入接口返回文字，避免把外部文字当作 HTML 执行。
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function mealImage(meal, className) {
+  const img = element('img', className);
+  img.alt = meal.strMeal;
+  try {
+    const url = new URL(meal.strMealThumb);
+    if (url.protocol === 'https:') img.src = url.href;
+  } catch { /* 缺失图片时仍显示菜名。 */ }
+  img.loading = 'lazy';
+  return img;
+}
+function displayMeals(meals) {
+  mealsContainer.replaceChildren();
+  meals.forEach(meal => {
+    const card = element('button', 'meal');
+    card.type = 'button';
+    card.dataset.mealId = meal.idMeal;
+    const info = element('div', 'meal-info');
+    info.append(element('h3', 'meal-title', meal.strMeal));
+    if (meal.strCategory) info.append(element('span', 'meal-category', meal.strCategory));
+    card.append(mealImage(meal, ''), info);
+    mealsContainer.append(card);
+  });
+}
+async function handleMealClick(event) {
+  const card = event.target.closest('.meal');
+  if (!card) return;
+  selectedCard = card;
+  const request = ++detailRequest;
+  errorContainer.classList.add('hidden');
+  mealDetails.classList.remove('hidden');
+  mealDetailsContent.replaceChildren(element('p', '', 'Loading recipe…'));
+  try {
+    const meals = await fetchMeals(LOOKUP_URL + encodeURIComponent(card.dataset.mealId));
+    if (request !== detailRequest) return;
+    if (!meals?.[0]) throw new Error('Recipe unavailable');
+    const meal = meals[0];
+    const category = element('div', 'meal-details-category');
+    category.append(element('span', '', meal.strCategory || 'Uncategorized'));
+    const instructions = element('div', 'meal-details-instructions');
+    instructions.append(element('h3', '', 'Instructions'), element('p', '', meal.strInstructions || 'No instructions available.'));
+    const ingredients = element('div', 'meal-details-ingredients');
+    const list = element('ul', 'ingredients-list');
+    for (let i = 1; i <= 20; i++) {
+      const ingredient = meal[`strIngredient${i}`]?.trim();
+      if (ingredient) list.append(element('li', '', `${meal[`strMeasure${i}`]?.trim() || ''} ${ingredient}`.trim()));
     }
-}
-
-function restartQuiz() {
-    resultScreen.classList.remove("active");
-    startQuiz();
+    ingredients.append(element('h3', '', 'Ingredients'), list);
+    mealDetailsContent.replaceChildren(mealImage(meal, 'meal-details-img'), element('h2', 'meal-details-title', meal.strMeal), category, instructions, ingredients);
+    try {
+      const url = new URL(meal.strYoutube);
+      if (url.protocol === 'https:' && ['youtube.com','www.youtube.com','youtu.be'].includes(url.hostname)) {
+        const video = element('a', 'youtube-link', '▶ Watch Video');
+        video.href = url.href; video.target = '_blank'; video.rel = 'noopener noreferrer';
+        mealDetailsContent.append(video);
+      }
+    } catch { /* 没有视频时不显示链接。 */ }
+    backBtn.focus({ preventScroll: true });
+    mealDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (error) {
+    if (request !== detailRequest) return;
+    mealDetails.classList.add('hidden');
+    showError('Could not load recipe details. Please try again later.');
+  }
 }

@@ -1,24 +1,21 @@
-# 第二次课课堂作业 — Quiz Game
+# 第二次课后作业 — Recipe Finder 菜单搜索器
 
-本项目是第二次课的课堂作业。
+原生 HTML / CSS / JavaScript 前端项目，依据 coder章老师的《1.5菜谱搜索器.md》实现。
 
-- 课堂作业仓库：https://github.com/jz0530/2412190609webclasswork2
-- 在线演示：https://2412190609webclasswork2.vercel.app/
+## 功能
+- 输入英文菜名并点击 Search 或回车搜索 TheMealDB。
+- 响应式网格展示图片、菜名与分类。
+- 点击卡片查看食材、用量、制作步骤及可用的视频链接。
+- 返回搜索结果；处理空输入、无结果、网络错误及请求超时。
 
-此前误放到 webhomework2 的版本仅作为备份保留，请以以上课堂作业仓库和演示地址为准。
+## 运行
+在 VS Code 使用 Live Server 打开 index.html。无需 npm 安装或构建。
+Vercel 使用 Other 预设，根目录 ./，无构建命令。
 
-使用原生 HTML、CSS、JavaScript 完成的课堂答题小游戏。直接打开 index.html，或使用 VS Code Live Server 运行。
+## 资料与说明
+课程笔记：https://gitee.com/bigbug55/webdesign/blob/master/1.5菜谱搜索器.md
+数据接口：https://www.themealdb.com/api.php
+保留课程中的接口、函数分工与配色，按效果图补全 HTML/CSS；未逐帧复刻视频。增加了键盘操作、请求超时和安全文本渲染。
+搜索依赖第三方网络服务；请使用英文关键词，例如 chicken、pasta、beef。
 
-包含五道题、正确/错误提示、自动切换、计分、进度条、成绩评价和重新开始。
-
-## 参考资料
-
-老师视频简介提供的课程笔记：https://gitee.com/bigbug55/webdesign
-
-JavaScript 依据《1.4测试题目.md》的题库、函数结构和判断逻辑整理；HTML/CSS 保留已有作业并补齐答案按钮样式。未逐帧核对视频，不能视为视频代码逐字副本。
-
-补充修正：开始页默认显示、脚本文件名统一为 script.js、结果提示补充 id、选择后禁用按钮、最后一题进度达到 100%、手机按钮内边距修正。
-
-## Vercel
-
-本项目为纯静态网站。导入独立 GitHub 仓库时使用 Other 框架预设，项目根目录为 ./，无需构建命令。
+Quiz Game 是课堂作业，独立保存在 https://github.com/jz0530/2412190609webclasswork2 。
